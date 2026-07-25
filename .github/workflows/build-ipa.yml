@@ -19,28 +19,44 @@ jobs:
       - name: Install Fastlane
         run: gem install fastlane -N --no-document
 
-      - name: Discover Team ID
+      - name: Auth & discover Team ID
         id: team
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           mkdir -p fastlane
-          cat > fastlane/Fastfile << 'FASTFILE'
-          lane :get_team do
-            require 'spaceship'
-            Spaceship.login(ENV['APPLE_ID'], ENV['APPLE_APP_SPECIFIC_PASSWORD'])
-            team = Spaceship.client.teams.first
-            if team.nil?
-              UI.user_error!("No teams found for this Apple ID")
-            end
-            File.write('/tmp/team_id.txt', team['teamId'])
-            UI.message("Team ID: #{team['teamId']}")
-          end
-          FASTFILE
           
-          fastlane get_team 2>&1
-          TEAM_ID=$(cat /tmp/team_id.txt)
+          TEAM_ID=$(ruby -e '
+            require "spaceship"
+            begin
+              Spaceship::Portal.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
+              team = Spaceship::Portal.client.teams.first
+              if team
+                puts team["teamId"]
+              else
+                $stderr.puts "ERROR: No teams found"
+                exit 1
+              end
+            rescue => e
+              $stderr.puts "Spaceship error: #{e.class}: #{e.message}"
+              $stderr.puts e.backtrace.first(5).join("\n")
+              exit 1
+            end
+          ' 2>/tmp/spaceship_err.txt)
+          
+          if [ -z "$TEAM_ID" ]; then
+            echo "=== Spaceship login failed ==="
+            cat /tmp/spaceship_err.txt
+            echo ""
+            echo "=== Diagnostic info ==="
+            echo "Apple ID prefix: ${APPLE_ID:0:5}***"
+            echo "This ID may need to accept developer terms first."
+            echo "Please visit https://developer.apple.com/account/ and sign in."
+            exit 1
+          fi
+          
+          echo "Team ID: $TEAM_ID"
           echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
 
       - name: Build archive
