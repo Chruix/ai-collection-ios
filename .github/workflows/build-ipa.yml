@@ -43,7 +43,7 @@ jobs:
               $stderr.puts e.backtrace.first(5).join("\n")
               exit 1
             end
-          ' 2>/tmp/spaceship_err.txt)
+          ' 2>/tmp/spaceship_err.txt) || true
           
           if [ -z "$TEAM_ID" ]; then
             echo "=== Spaceship login failed ==="
