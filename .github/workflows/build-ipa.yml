@@ -25,11 +25,12 @@ jobs:
           security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db 2>/dev/null || true
 
           # Store creds with the exact service name Xcode uses
+          XCODE_APP=$(ls -d /Applications/Xcode*.app | head -1)
           security add-generic-password \
             -a "$APPLE_ID" \
             -s "com.apple.gs.xcode.auth.com.apple.account.AppleIDAuthentication.token" \
             -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T /Applications/Xcode_*.app/Contents/MacOS/Xcode \
+            -T "$XCODE_APP/Contents/MacOS/Xcode" \
             -T /usr/bin/xcodebuild \
             ~/Library/Keychains/login.keychain-db
 
