@@ -20,11 +20,20 @@ jobs:
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          XCODE_USERNAME: ${{ secrets.APPLE_ID }}
-          XCODE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          FASTLANE_USER: ${{ secrets.APPLE_ID }}
-          FASTLANE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
+          # Register Apple ID with Xcode via defaults
+          defaults write com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts -array-add \
+            "{\"appleID\":\"$APPLE_ID\",\"teams\":[{\"teamID\":\"73CW6GKFA3\",\"teamName\":\"Jake Chen\",\"teamType\":\"Individual\"}]}"
+
+          # Store password in keychain (Xcode probes this)
+          security add-generic-password \
+            -a "$APPLE_ID" \
+            -s "com.apple.dt.Xcode" \
+            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
+            -T /Applications/Xcode_26.3.app/Contents/MacOS/Xcode \
+            -T /usr/bin/xcodebuild \
+            ~/Library/Keychains/login.keychain-db
+
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
