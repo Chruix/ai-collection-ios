@@ -21,18 +21,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Register Apple ID with Xcode via defaults
-          defaults write com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts -array-add \
-            "{\"appleID\":\"$APPLE_ID\",\"teams\":[{\"teamID\":\"73CW6GKFA3\",\"teamName\":\"Jake Chen\",\"teamType\":\"Individual\"}]}"
+          # Write account info as plist
+          defaults write com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts \
+            -array-add '<dict><key>appleID</key><string>'"$APPLE_ID"'</string><key>teams</key><array><dict><key>teamID</key><string>73CW6GKFA3</string><key>teamName</key><string>Jake Chen</string><key>teamType</key><string>Individual</string></dict></array></dict>'
 
-          # Store password in keychain (Xcode probes this)
-          security add-generic-password \
-            -a "$APPLE_ID" \
-            -s "com.apple.dt.Xcode" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T /Applications/Xcode_26.3.app/Contents/MacOS/Xcode \
-            -T /usr/bin/xcodebuild \
-            ~/Library/Keychains/login.keychain-db
+          # Verify it wrote
+          defaults read com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts 2>&1 | head -5
 
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
