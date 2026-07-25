@@ -24,13 +24,24 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security default-keychain -s $KEYCHAIN_PATH
           security unlock-keychain -p "" $KEYCHAIN_PATH
 
-          # Store Apple ID in keychain for xcodebuild -allowProvisioningUpdates
+          # Set as default and keep login keychain in search list
+          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
+
+          # Store Apple ID credentials — Xcode probes these service names
           security add-generic-password \
             -a "$APPLE_ID" \
-            -s "Xcode-User-" \
+            -s "com.apple.gs.xcode.auth.com.apple.account.AppleIDAuthentication.token" \
+            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
+            -T /usr/bin/security \
+            -T /usr/bin/xcodebuild \
+            $KEYCHAIN_PATH
+
+          # Also store for developer portal access
+          security add-generic-password \
+            -a "$APPLE_ID" \
+            -s "deliver.apple.com" \
             -w "$APPLE_APP_SPECIFIC_PASSWORD" \
             -T /usr/bin/security \
             -T /usr/bin/xcodebuild \
@@ -44,6 +55,7 @@ jobs:
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="" \
             -allowProvisioningUpdates \
             2>&1
 
