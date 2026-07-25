@@ -17,40 +17,40 @@ jobs:
           xcode-version: latest-stable
 
       - name: Install Fastlane
-        run: gem install fastlane -N --no-document 2>&1 | tail -3
+        run: gem install fastlane -N --no-document
 
-      - name: Discover Team ID & Build
+      - name: Discover Team ID
+        id: team
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          set -e
-          TEAM_ID=$(ruby -e '
-            require "spaceship"
-            Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
-            teams = Spaceship.client.teams
-            if teams.empty?
-              $stderr.puts "ERROR: No teams for this Apple ID"
-              exit 1
+          cat > Fastfile << 'FASTFILE'
+          lane :get_team do
+            require 'spaceship'
+            Spaceship.login(ENV['APPLE_ID'], ENV['APPLE_APP_SPECIFIC_PASSWORD'])
+            team = Spaceship.client.teams.first
+            if team.nil?
+              UI.user_error!("No teams found for this Apple ID")
             end
-            puts teams.first["teamId"]
-          ' 2>/tmp/team_err.txt)
+            File.write('/tmp/team_id.txt', team['teamId'])
+            UI.message("Team ID: #{team['teamId']}")
+          end
+          FASTFILE
           
-          if [ -z "$TEAM_ID" ]; then
-            echo "Ruby team discovery failed:"
-            cat /tmp/team_err.txt
-            exit 1
-          fi
-          
-          echo "Team ID: $TEAM_ID"
-          
+          fastlane get_team 2>&1
+          TEAM_ID=$(cat /tmp/team_id.txt)
+          echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
+
+      - name: Build archive
+        run: |
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Automatic \
-            "DEVELOPMENT_TEAM=$TEAM_ID" \
+            "DEVELOPMENT_TEAM=${{ steps.team.outputs.team_id }}" \
             -allowProvisioningUpdates \
             2>&1
 
