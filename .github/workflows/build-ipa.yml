@@ -25,7 +25,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          cat > Fastfile << 'FASTFILE'
+          mkdir -p fastlane
+          cat > fastlane/Fastfile << 'FASTFILE'
           lane :get_team do
             require 'spaceship'
             Spaceship.login(ENV['APPLE_ID'], ENV['APPLE_APP_SPECIFIC_PASSWORD'])
