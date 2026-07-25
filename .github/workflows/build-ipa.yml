@@ -11,23 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Xcode
+      - name: Setup Xcode 16
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: "16.4"
 
       - name: Build archive
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Write account info as plist
-          defaults write com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts \
-            -array-add '<dict><key>appleID</key><string>'"$APPLE_ID"'</string><key>teams</key><array><dict><key>teamID</key><string>73CW6GKFA3</string><key>teamName</key><string>Jake Chen</string><key>teamType</key><string>Individual</string></dict></array></dict>'
-
-          # Verify it wrote
-          defaults read com.apple.dt.Xcode DVTDeveloperAccountManagerAllAccounts 2>&1 | head -5
-
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
@@ -36,6 +29,8 @@ jobs:
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=73CW6GKFA3 \
             -allowProvisioningUpdates \
+            -authenticationKeyID "" \
+            -authenticationKeyIssuerID "" \
             2>&1
 
       - name: Export IPA
