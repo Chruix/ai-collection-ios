@@ -11,16 +11,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Xcode 16
+      - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.4"
+          xcode-version: latest-stable
 
-      - name: Build archive
+      - name: Build & sign
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
+          # Use login keychain (where Xcode looks)
+          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db 2>/dev/null || true
+
+          # Store creds with the exact service name Xcode uses
+          security add-generic-password \
+            -a "$APPLE_ID" \
+            -s "com.apple.gs.xcode.auth.com.apple.account.AppleIDAuthentication.token" \
+            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
+            -T /Applications/Xcode_*.app/Contents/MacOS/Xcode \
+            -T /usr/bin/xcodebuild \
+            ~/Library/Keychains/login.keychain-db
+
+          # Also set PARTITION_ID for Xcode access
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" \
+            ~/Library/Keychains/login.keychain-db 2>/dev/null || true
+
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
@@ -29,8 +45,6 @@ jobs:
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=73CW6GKFA3 \
             -allowProvisioningUpdates \
-            -authenticationKeyID "" \
-            -authenticationKeyIssuerID "" \
             2>&1
 
       - name: Export IPA
