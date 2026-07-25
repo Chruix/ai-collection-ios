@@ -16,53 +16,44 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Import Apple credentials
+      - name: Install Fastlane
+        run: gem install fastlane -N --no-document
+
+      - name: Get Team ID & Build
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security create-keychain -p "" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "" $KEYCHAIN_PATH
-
-          # Set as default and keep login keychain in search list
-          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
-
-          # Store Apple ID credentials — Xcode probes these service names
-          security add-generic-password \
-            -a "$APPLE_ID" \
-            -s "com.apple.gs.xcode.auth.com.apple.account.AppleIDAuthentication.token" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T /usr/bin/security \
-            -T /usr/bin/xcodebuild \
-            $KEYCHAIN_PATH
-
-          # Also store for developer portal access
-          security add-generic-password \
-            -a "$APPLE_ID" \
-            -s "deliver.apple.com" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T /usr/bin/security \
-            -T /usr/bin/xcodebuild \
-            $KEYCHAIN_PATH
-
-      - name: Build archive
-        run: |
+          # Use Spaceship to discover the Personal Team ID
+          TEAM_ID=$(ruby -e '
+            require "spaceship"
+            Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
+            team = Spaceship.client.teams.first
+            puts team["teamId"]
+          ' 2>&1)
+          
+          echo "Team ID: $TEAM_ID"
+          
+          if [ -z "$TEAM_ID" ]; then
+            echo "ERROR: Could not discover team ID"
+            exit 1
+          fi
+          
+          # Build with discovered team ID
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="" \
+            "DEVELOPMENT_TEAM=$TEAM_ID" \
             -allowProvisioningUpdates \
             2>&1
 
       - name: Export IPA
         run: |
-          mkdir -p export
-          cat > export/exportOptions.plist << 'EOF'
+          mkdir -p $RUNNER_TEMP/export
+          cat > $RUNNER_TEMP/exportOptions.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -73,23 +64,18 @@ jobs:
               <string>automatic</string>
           </dict>
           </plist>
-          EOF
-
+          PLIST
+          
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -exportPath $RUNNER_TEMP/export \
-            -exportOptionsPlist export/exportOptions.plist \
+            -exportOptionsPlist $RUNNER_TEMP/exportOptions.plist \
             -allowProvisioningUpdates \
             2>&1
 
-      - name: Upload IPA artifact
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: AI-Collection.ipa
           path: ${{ runner.temp }}/export/*.ipa
           retention-days: 7
-
-      - name: Cleanup keychain
-        if: always()
-        run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
