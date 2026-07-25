@@ -16,33 +16,32 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install Fastlane
+        run: gem install fastlane -N --no-document 2>&1 | tail -3
+
       - name: Discover Team ID & Build
-        id: build
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          cat > get_team.rb << 'RBEOF'
-          require "bundler/inline"
-
-          gemfile do
-            source "https://rubygems.org"
-            gem "fastlane"
-          end
-
-          require "spaceship"
-
-          Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
-          team = Spaceship.client.teams.first
-          if team
-            puts team["teamId"]
-          else
-            $stderr.puts "ERROR: No teams found for this Apple ID"
+          set -e
+          TEAM_ID=$(ruby -e '
+            require "spaceship"
+            Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
+            teams = Spaceship.client.teams
+            if teams.empty?
+              $stderr.puts "ERROR: No teams for this Apple ID"
+              exit 1
+            end
+            puts teams.first["teamId"]
+          ' 2>/tmp/team_err.txt)
+          
+          if [ -z "$TEAM_ID" ]; then
+            echo "Ruby team discovery failed:"
+            cat /tmp/team_err.txt
             exit 1
-          end
-          RBEOF
-
-          TEAM_ID=$(ruby get_team.rb 2>&1)
+          fi
+          
           echo "Team ID: $TEAM_ID"
           
           xcodebuild archive \
