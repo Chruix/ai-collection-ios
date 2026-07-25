@@ -16,19 +16,17 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build & sign with keychain auth
+      - name: Build archive
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Create temp keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
           security create-keychain -p "" $KEYCHAIN_PATH
           security default-keychain -s $KEYCHAIN_PATH
           security unlock-keychain -p "" $KEYCHAIN_PATH
           security set-keychain-settings -lut 7200 $KEYCHAIN_PATH
 
-          # Store Apple ID creds where xcodebuild can find them
           security add-generic-password \
             -a "$APPLE_ID" \
             -s "Xcode-AlternateDSID" \
@@ -38,27 +36,16 @@ jobs:
             -T /usr/bin/codesign \
             $KEYCHAIN_PATH
 
-          # Also store as internet password for idmsa
-          security add-internet-password \
-            -a "$APPLE_ID" \
-            -s "idmsa.apple.com" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -r "htps" \
-            -T /usr/bin/security \
-            -T /usr/bin/xcodebuild \
-            $KEYCHAIN_PATH
-
-          # Let xcodebuild handle everything: team discovery, cert, profile, signing
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=73CW6GKFA3 \
             -allowProvisioningUpdates \
             2>&1
 
-          # Clean up
           security delete-keychain $KEYCHAIN_PATH || true
 
       - name: Export IPA
