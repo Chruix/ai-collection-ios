@@ -20,22 +20,11 @@ jobs:
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          XCODE_USERNAME: ${{ secrets.APPLE_ID }}
+          XCODE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          FASTLANE_USER: ${{ secrets.APPLE_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          security create-keychain -p "" $KEYCHAIN_PATH
-          security default-keychain -s $KEYCHAIN_PATH
-          security unlock-keychain -p "" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 7200 $KEYCHAIN_PATH
-
-          security add-generic-password \
-            -a "$APPLE_ID" \
-            -s "Xcode-AlternateDSID" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T /usr/bin/security \
-            -T /usr/bin/xcodebuild \
-            -T /usr/bin/codesign \
-            $KEYCHAIN_PATH
-
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
@@ -45,8 +34,6 @@ jobs:
             DEVELOPMENT_TEAM=73CW6GKFA3 \
             -allowProvisioningUpdates \
             2>&1
-
-          security delete-keychain $KEYCHAIN_PATH || true
 
       - name: Export IPA
         run: |
@@ -60,6 +47,8 @@ jobs:
               <string>development</string>
               <key>signingStyle</key>
               <string>automatic</string>
+              <key>teamID</key>
+              <string>73CW6GKFA3</string>
           </dict>
           </plist>
           PLIST
