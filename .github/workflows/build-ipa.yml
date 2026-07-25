@@ -16,30 +16,35 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Install Fastlane
-        run: gem install fastlane -N --no-document
-
-      - name: Get Team ID & Build
+      - name: Discover Team ID & Build
+        id: build
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Use Spaceship to discover the Personal Team ID
-          TEAM_ID=$(ruby -e '
-            require "spaceship"
-            Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
-            team = Spaceship.client.teams.first
+          cat > get_team.rb << 'RBEOF'
+          require "bundler/inline"
+
+          gemfile do
+            source "https://rubygems.org"
+            gem "fastlane"
+          end
+
+          require "spaceship"
+
+          Spaceship.login(ENV["APPLE_ID"], ENV["APPLE_APP_SPECIFIC_PASSWORD"])
+          team = Spaceship.client.teams.first
+          if team
             puts team["teamId"]
-          ' 2>&1)
-          
+          else
+            $stderr.puts "ERROR: No teams found for this Apple ID"
+            exit 1
+          end
+          RBEOF
+
+          TEAM_ID=$(ruby get_team.rb 2>&1)
           echo "Team ID: $TEAM_ID"
           
-          if [ -z "$TEAM_ID" ]; then
-            echo "ERROR: Could not discover team ID"
-            exit 1
-          fi
-          
-          # Build with discovered team ID
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
@@ -65,7 +70,6 @@ jobs:
           </dict>
           </plist>
           PLIST
-          
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -exportPath $RUNNER_TEMP/export \
