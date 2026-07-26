@@ -16,33 +16,25 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build archive (sign with Personal Team)
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      - name: Build unsigned .app
         run: |
-          # Open keychain
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db 2>/dev/null || true
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" \
-            ~/Library/Keychains/login.keychain-db 2>/dev/null || true
-
-          # Register Apple ID (generates a free personal provisioning profile)
-          xcodebuild archive \
+          xcodebuild build \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
-            -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Development" \
-            -allowProvisioningUpdates \
+            -derivedDataPath $RUNNER_TEMP/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             2>&1
 
-      - name: Export IPA (development, side-loadable)
+      - name: Package IPA
         run: |
+          APP_PATH=$(find "$RUNNER_TEMP/DerivedData/Build/Products" -name "*.app" -maxdepth 3 -print -quit)
+          echo "Found app at: $APP_PATH"
           mkdir -p $RUNNER_TEMP/export
-          ARCHIVE_DIR=$(find "$RUNNER_TEMP/AI-Collection.xcarchive/Products/Applications" -maxdepth 1 -name "*.app" -print -quit)
           mkdir -p Payload
-          cp -R "$ARCHIVE_DIR" Payload/
+          cp -R "$APP_PATH" Payload/
           zip -r $RUNNER_TEMP/export/AI-Collection.ipa Payload
           rm -rf Payload
 
