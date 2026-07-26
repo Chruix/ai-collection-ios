@@ -16,61 +16,35 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build & sign
+      - name: Build archive (sign with Personal Team)
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Use login keychain (where Xcode looks)
+          # Open keychain
           security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db 2>/dev/null || true
-
-          # Store creds with the exact service name Xcode uses
-          XCODE_APP=$(ls -d /Applications/Xcode*.app | head -1)
-          security add-generic-password \
-            -a "$APPLE_ID" \
-            -s "com.apple.gs.xcode.auth.com.apple.account.AppleIDAuthentication.token" \
-            -w "$APPLE_APP_SPECIFIC_PASSWORD" \
-            -T "$XCODE_APP/Contents/MacOS/Xcode" \
-            -T /usr/bin/xcodebuild \
-            ~/Library/Keychains/login.keychain-db
-
-          # Also set PARTITION_ID for Xcode access
           security set-key-partition-list -S apple-tool:,apple: -s -k "" \
             ~/Library/Keychains/login.keychain-db 2>/dev/null || true
 
+          # Register Apple ID (generates a free personal provisioning profile)
           xcodebuild archive \
             -project AI-Collection.xcodeproj \
             -scheme AI-Collection \
             -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=73CW6GKFA3 \
+            CODE_SIGN_IDENTITY="Apple Development" \
             -allowProvisioningUpdates \
             2>&1
 
-      - name: Export IPA
+      - name: Export IPA (development, side-loadable)
         run: |
           mkdir -p $RUNNER_TEMP/export
-          cat > $RUNNER_TEMP/exportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>signingStyle</key>
-              <string>automatic</string>
-              <key>teamID</key>
-              <string>73CW6GKFA3</string>
-          </dict>
-          </plist>
-          PLIST
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/AI-Collection.xcarchive \
-            -exportPath $RUNNER_TEMP/export \
-            -exportOptionsPlist $RUNNER_TEMP/exportOptions.plist \
-            -allowProvisioningUpdates \
-            2>&1
+          ARCHIVE_DIR=$(find "$RUNNER_TEMP/AI-Collection.xcarchive/Products/Applications" -maxdepth 1 -name "*.app" -print -quit)
+          mkdir -p Payload
+          cp -R "$ARCHIVE_DIR" Payload/
+          zip -r $RUNNER_TEMP/export/AI-Collection.ipa Payload
+          rm -rf Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
