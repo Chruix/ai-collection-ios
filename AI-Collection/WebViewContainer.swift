@@ -185,7 +185,7 @@ private func injectBridgeScript(into controller: WKUserContentController) {
     class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let apiBaseURL: String
         // 持有 native fetch handler，避免被释放后 WebView 消息无人接收
-        var nativeFetchHandler: NativeFetchMessageHandler?
+        fileprivate var nativeFetchHandler: NativeFetchMessageHandler?
 
         init(apiBaseURL: String) {
             self.apiBaseURL = apiBaseURL
