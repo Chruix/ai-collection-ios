@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SettingsView: View {
     @Binding var apiBaseURL: String
@@ -10,81 +10,116 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text("AI Collection 需要连接到运行中的 Python 后端服务。")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Section("API 服务器地址") {
-                    TextField("http://localhost:8777", text: $urlInput)
-                        .keyboardType(.URL)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .font(.system(.body, design: .monospaced))
-                        .onAppear {
-                            urlInput = apiBaseURL
-                        }
-                }
-
-                Section("外观") {
-                    Toggle("深色模式", isOn: $isDarkMode)
-                }
-
-                Section {
-                    Button(action: {
-                        let trimmed = urlInput
-                            .trimmingCharacters(in: .whitespaces)
-                            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                        apiBaseURL = trimmed
-                        showSavedToast = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                            dismiss()
-                        }
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("保存并应用")
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                    }
-                    .disabled(urlInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        apiBaseURL = "http://localhost:8777"
-                        urlInput = apiBaseURL
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("重置为默认地址")
-                            Spacer()
-                        }
-                    }
-                }
+                descriptionSection
+                apiSection
+                appearanceSection
+                saveSection
+                resetSection
             }
-            .navigationTitle("设置")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
             }
             .overlay(alignment: .top) {
-                if showSavedToast {
-                    Text("已保存")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.accentColor, in: Capsule())
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .padding(.top, 8)
-                }
+                ToastOverlay(visible: showSavedToast, text: "Saved")
             }
             .animation(.easeInOut(duration: 0.25), value: showSavedToast)
+            .onAppear {
+                urlInput = apiBaseURL
+            }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var descriptionSection: some View {
+        Section {
+            Text("Connect to a running Python backend service.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var apiSection: some View {
+        Section("API Server Address") {
+            TextField("http://localhost:8777", text: $urlInput)
+                .keyboardType(.URL)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .font(.system(.body, design: .monospaced))
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            Toggle("Dark Mode", isOn: $isDarkMode)
+        }
+    }
+
+    private var saveSection: some View {
+        Section {
+            Button(action: saveAndApply) {
+                HStack {
+                    Spacer()
+                    Text("Save & Apply")
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+            }
+            .disabled(urlInput.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+    }
+
+    private var resetSection: some View {
+        Section {
+            Button(role: .destructive, action: resetToDefault) {
+                HStack {
+                    Spacer()
+                    Text("Reset to Default")
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func saveAndApply() {
+        let trimmed = urlInput
+            .trimmingCharacters(in: .whitespaces)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        apiBaseURL = trimmed
+        showSavedToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            dismiss()
+        }
+    }
+
+    private func resetToDefault() {
+        apiBaseURL = "http://localhost:8777"
+        urlInput = apiBaseURL
+    }
+}
+
+// MARK: - Toast Overlay
+
+private struct ToastOverlay: View {
+    let visible: Bool
+    let text: String
+
+    var body: some View {
+        if visible {
+            Text(text)
+                .font(.caption.weight(.medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.accentColor, in: Capsule())
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.top, 8)
         }
     }
 }
