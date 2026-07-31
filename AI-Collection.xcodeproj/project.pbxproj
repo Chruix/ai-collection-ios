@@ -13,6 +13,8 @@
 		10000000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000005 /* Assets.xcassets */; };
 		10000000000000000000000005 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000006 /* index.html */; };
 		10000000000000000000000006 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000007 /* manifest.json */; };
+		10000000000000000000000007 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000009 /* AppIntents.swift */; };
+		10000000000000000000000008 /* styles.css in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000010 /* styles.css */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,8 @@
 		20000000000000000000000006 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		20000000000000000000000007 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		20000000000000000000000008 /* AI-Collection.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AI-Collection.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		20000000000000000000000009 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
+		20000000000000000000000010 /* styles.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = styles.css; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -41,6 +45,7 @@
 				20000000000000000000000001 /* App.swift */,
 				20000000000000000000000002 /* WebViewContainer.swift */,
 				20000000000000000000000003 /* SettingsView.swift */,
+				20000000000000000000000009 /* AppIntents.swift */,
 				20000000000000000000000004 /* Info.plist */,
 				20000000000000000000000005 /* Assets.xcassets */,
 				30000000000000000000000004 /* www */,
@@ -61,6 +66,7 @@
 			children = (
 				20000000000000000000000006 /* index.html */,
 				20000000000000000000000007 /* manifest.json */,
+				20000000000000000000000010 /* styles.css */,
 			);
 			path = www;
 			sourceTree = "<group>";
@@ -126,6 +132,7 @@
 				10000000000000000000000004 /* Assets.xcassets in Resources */,
 				10000000000000000000000005 /* index.html in Resources */,
 				10000000000000000000000006 /* manifest.json in Resources */,
+				10000000000000000000000008 /* styles.css in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +146,7 @@
 				10000000000000000000000001 /* App.swift in Sources */,
 				10000000000000000000000002 /* WebViewContainer.swift in Sources */,
 				10000000000000000000000003 /* SettingsView.swift in Sources */,
+				10000000000000000000000007 /* AppIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
