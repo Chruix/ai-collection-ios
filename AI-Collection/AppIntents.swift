@@ -101,8 +101,8 @@ struct AppShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: SearchCollectionIntent(),
             phrases: [
-                "Search \\(.applicationName)",
-                "Find in \\(.applicationName)",
+                "Search \(.applicationName)",
+                "Find in \(.applicationName)",
             ],
             shortTitle: "Search Collection",
             systemImageName: "magnifyingglass"
